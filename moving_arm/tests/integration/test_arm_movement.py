@@ -36,7 +36,7 @@ def test_autonomous_movement_sequence(device_args):
     - Fails if any action fails
     """
 
-    with utilities.DeviceConnection.createTcpConnection(device_args) as router:
+    with utilities.DeviceConnection.createTcpConnection(*device_args.values()) as router:
         base = BaseClient(router)
         movement = AutonomousMovement(base)
 

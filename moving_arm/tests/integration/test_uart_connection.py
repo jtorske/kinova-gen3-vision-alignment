@@ -40,7 +40,7 @@ def test_uart_bridge_send_and_receive(device_args):
     - Cleans up bridge and UART config
     """
 
-    with utilities.DeviceConnection.createTcpConnection(device_args) as router:
+    with utilities.DeviceConnection.createTcpConnection(*device_args.values()) as router:
 
         uart = UARTBridgeConfig(router, device_args.ip)
 
