@@ -9,7 +9,7 @@ from kortex_api.autogen.client_stubs.InterconnectConfigClientRpc import Intercon
 
 from kortex_api.autogen.messages import Session_pb2, Base_pb2, Common_pb2, InterconnectConfig_pb2, DeviceManager_pb2
 
-import utilities
+from K3N import utilities
 
 def createNewBridge(type, interface_name, device_ip):
     if type == "ETHERNET":

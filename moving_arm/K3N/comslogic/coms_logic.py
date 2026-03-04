@@ -16,6 +16,7 @@ class ComsLogic2K3N:
 
     def getTelemetryData(self):
         logger.info("Fetching telemetry data")
+        
     def parseLogs(self):
         return
     

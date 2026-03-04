@@ -21,12 +21,11 @@ pytestmark = pytest.mark.integration
 # Fixture to parse device connection arguments
 @pytest.fixture(scope="session")
 def device_args():
-    """
-    Parse Kortex connection arguments in the standard way.
-    """
-    import argparse
-    parser = argparse.ArgumentParser()
-    return utilities.parseConnectionArguments(parser)
+    return {
+        "ip": "192.168.1.10",
+        "username": "admin",
+        "password": "admin"
+    }
 
 def test_ethernet_bridge_enable_disable(device_args):
     """

@@ -1,7 +1,7 @@
 from ..commander.location import Location
 from ..commander.vectors import Vectors
 from logging import getLogger
-from action_frame import ActionFrame
+from .action_frame import ActionFrame
 from ..utilities import read_csv
 
 import threading

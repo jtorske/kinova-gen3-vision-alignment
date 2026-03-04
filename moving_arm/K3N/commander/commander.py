@@ -13,12 +13,12 @@ class CommanderGUI:
 
     def acceptCommand(self, cmd: str) -> str:
         """ Will be used to take in a command from the GUI """
-        Logging.logInfo(f"Command accepted: {cmd}")
+        logger.info(f"Command accepted: {cmd}")
         return cmd
     
     def takeInCSV(self, filepath: str) -> str:
         """ Will be used to take in a CSV filepath from the GUI """
-        Logging.logInfo(f"CSV filepath accepted: {filepath}")
+        logger.info(f"CSV filepath accepted: {filepath}")
         return filepath
 
     def dispatchLog(self):

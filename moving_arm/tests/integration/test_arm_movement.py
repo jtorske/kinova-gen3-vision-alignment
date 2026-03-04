@@ -6,7 +6,7 @@ from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2
 
-from moving_arm.K3N import utilities
+from K3N import utilities
 from K3N.movement.auto_move import AutonomousMovement
 
 #Pytest markers
