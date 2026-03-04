@@ -38,7 +38,11 @@ def test_ethernet_bridge_enable_disable(device_args):
     - Bridge can be disabled cleanly
     """
 
-    with utilities.DeviceConnection.createTcpConnection(*device_args.values()) as router:
+    with utilities.DeviceConnection.createTcpConnection(
+            device_args["ip"],
+            device_args["username"],
+            device_args["password"]
+        ) as router:
 
         ethernet_bridge = EthernetBridgeConfig(router)
 

@@ -16,7 +16,8 @@ class DeviceConnection:
         """
         returns RouterClient required to create services and send requests to device or sub-devices,
         """
-
+        print(f"Creating TCP connection to {device_ip} with username '{username}'")
+        print(password)
         return DeviceConnection(device_ip, port=DeviceConnection.TCP_PORT, credentials=(username, password))
 
     @staticmethod

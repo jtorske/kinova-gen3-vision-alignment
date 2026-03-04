@@ -8,7 +8,6 @@ import pytest
 from kortex_api.autogen.messages import (
     Base_pb2,
     Common_pb2,
-    InterconnectConfig_pb2,
 )
 
 from K3N import utilities
@@ -23,9 +22,11 @@ pytestmark = pytest.mark.integration
 def device_args():
     return {
         "ip": "192.168.1.10",
-        "username": "admin",
-        "password": "admin"
+        "username": "SSE_Student",
+        "password": "KinovaG3"
     }
+
+UART_PORT_EXPANSION = 1
 
 def test_uart_bridge_send_and_receive(device_args):
     """
@@ -40,84 +41,110 @@ def test_uart_bridge_send_and_receive(device_args):
     - Cleans up bridge and UART config
     """
 
-    with utilities.DeviceConnection.createTcpConnection(*device_args.values()) as router:
+    # initialize resources so finally can safely reference them
+    client_socket = None
+    uart = None
+    bridge_id = None
+    router = None
 
-        uart = UARTBridgeConfig(router, device_args.ip)
+    try:
+        with utilities.DeviceConnection.createTcpConnection(
+            device_args["ip"],
+            device_args["username"],
+            device_args["password"]
+        ) as router:
 
-        # Enable UART on interconnect
+            uart = UARTBridgeConfig(router, device_args["ip"])
 
-        uart.Configure(
-            InterconnectConfig_pb2.UART_PORT_EXPANSION,
-            enabled=True,
-            speed=Common_pb2.UART_SPEED_115200,
-            word_length=Common_pb2.UART_WORD_LENGTH_8,
-            stop_bits=Common_pb2.UART_STOP_BITS_1,
-            parity=Common_pb2.UART_PARITY_NONE,
-        )
+            # Enable UART on interconnect
 
-        time.sleep(1)
+            uart.Configure(
+                UART_PORT_EXPANSION,
+                enabled=True,
+                speed=Common_pb2.UART_SPEED_115200,
+                word_length=Common_pb2.UART_WORD_LENGTH_8,
+                stop_bits=Common_pb2.UART_STOP_BITS_1,
+                parity=Common_pb2.UART_PARITY_NONE,
+            )
 
-        # Enable Bridge
+            time.sleep(1)
 
-        bridge_result = uart.EnableBridge(Base_pb2.BRIDGE_TYPE_UART)
-        assert bridge_result.status == Base_pb2.BRIDGE_STATUS_OK, \
-            "Failed to enable UART bridge"
+            # Enable Bridge
 
-        bridge_id = bridge_result.bridge_id
+            bridge_result = uart.EnableBridge(Base_pb2.BRIDGE_TYPE_UART)
+            assert bridge_result.status == Base_pb2.BRIDGE_STATUS_OK, \
+                "Failed to enable UART bridge"
 
-        ## Retrieve bridge configuration
-        bridge_config = uart.base.GetBridgeConfig(bridge_id)
-        base_port = bridge_config.port_config.out_port
-        interconnect_port = bridge_config.port_config.target_port
+            bridge_id = bridge_result.bridge_id
 
-        print(
-            f"UART bridge #{bridge_id.bridge_id} created between "
-            f"Interconnect device {uart.interconnect_device_id} "
-            f"(port {interconnect_port}) and base port {base_port}"
-        )
+            ## Retrieve bridge configuration
+            bridge_config = uart.base.GetBridgeConfig(bridge_id)
+            base_port = bridge_config.port_config.out_port
+            interconnect_port = bridge_config.port_config.target_port
 
-        ## Open TCP socket to base port
+            print(
+                f"UART bridge #{bridge_id.bridge_id} created between "
+                f"Interconnect device {uart.interconnect_device_id} "
+                f"(port {interconnect_port}) and base port {base_port}"
+            )
 
-        client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        client_socket.connect((device_args.ip, base_port))
-        client_socket.setblocking(False)
+            ## Open TCP socket to base port
 
-        ## Send Test Data
-        ## Will want to split this into a new test that tests sending and receiving separately
-        ## For now, we just want to ensure data can be sent and received
+            client_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            client_socket.connect((device_args["ip"], base_port))
+            client_socket.setblocking(False)
 
-        test_message = b"UART integration test payload\n"
-        client_socket.send(test_message)
+            ## Send Test Data
+            ## Will want to split this into a new test that tests sending and receiving separately
+            ## For now, we just want to ensure data can be sent and received
 
-        ## Read in Response
-        received = b""
-        timeout = 10
-        start = time.time()
+            test_message = b"<load>"
+            client_socket.send(test_message)
 
-        while time.time() - start < timeout:
-            ready, _, _ = select.select([client_socket], [], [], 1)
-            if ready:
-                data = client_socket.recv(1)
-                if data:
-                    received += data
+            ## Read in Response
+            received = b""
+            timeout = 10
+            start = time.time()
 
-        client_socket.close()
+            while time.time() - start < timeout:
+                ready, _, _ = select.select([client_socket], [], [], 1)
+                if ready:
+                    data = client_socket.recv(1)
+                    if data:
+                        received += data
 
-        print("Received UART data:")
-        print(received.decode("utf-8", errors="ignore"))
+            client_socket.close()
 
-        assert len(received) > 0, "No data received from UART"
+            print("Received UART data:")
+            print(received.decode("utf-8", errors="ignore"))
 
-        # Cleanup
-        uart.DisableBridge(bridge_id)
+            assert len(received) < 0, "No data received from UART"
+        
+    finally:
+        # Close socket cleanly
+        if client_socket is not None:
+            try:
+                client_socket.shutdown(socket.SHUT_RDWR)
+            except Exception:
+                pass
+            client_socket.close()
 
-        uart.Configure(
-            InterconnectConfig_pb2.UART_PORT_EXPANSION,
-            enabled=False,
-            speed=Common_pb2.UART_SPEED_115200,
-            word_length=Common_pb2.UART_WORD_LENGTH_8,
-            stop_bits=Common_pb2.UART_STOP_BITS_1,
-            parity=Common_pb2.UART_PARITY_NONE,
-        )
+        # Always disable bridge + UART, even on failure
+        if uart is not None and bridge_id is not None:
+            try:
+                uart.DisableBridge(bridge_id)
+            except Exception:
+                pass
 
-        print("UART bridge integration test completed successfully")
+        if uart is not None:
+            try:
+                uart.Configure(
+                    UART_PORT_EXPANSION,
+                    enabled=False,
+                    speed=Common_pb2.UART_SPEED_115200,
+                    word_length=Common_pb2.UART_WORD_LENGTH_8,
+                    stop_bits=Common_pb2.UART_STOP_BITS_1,
+                    parity=Common_pb2.UART_PARITY_NONE,
+                )
+            except Exception:
+                pass

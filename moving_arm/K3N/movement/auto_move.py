@@ -163,7 +163,7 @@ class AutonomousMovement:
         return "OK"
     
     # Create closure to set an event after an END or an ABORT
-    def check_for_end_or_abort(e):
+    def check_for_end_or_abort(self, e):
         """Return a closure checking for END or ABORT notifications
 
         Arguments:
