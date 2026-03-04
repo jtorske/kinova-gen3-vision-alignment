@@ -1,2 +1,2 @@
-# Kinova3Capstone
-Capstone - 2026 winter - Group 22
+# Kinova3ArmPractice
+Putting together some test code for programming tutorial on Kinova3Arm
