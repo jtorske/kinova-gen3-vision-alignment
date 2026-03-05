@@ -1,6 +1,7 @@
 import os
 import pytest
 import time
+from typing import Optional
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
@@ -26,7 +27,7 @@ def device_args():
         "password": "KinovaG3"
     }
 
-def _best_effort_shutdown(router, base: BaseClient | None):
+def _best_effort_shutdown(router, base: Optional[BaseClient]):
     """
     Never raise from cleanup. This should *only* try to leave the device/connection
     in a sane state and close the comms channel.
