@@ -2,7 +2,7 @@ import cv2
 import numpy as np
 from pupil_apriltags import Detector
 
-from .webcam_config import camera_params, tag_size, tag_family
+from K3N.vision.common.webcam_config import camera_params, tag_size, tag_family
 
 # =====================
 # AprilTag Utilities

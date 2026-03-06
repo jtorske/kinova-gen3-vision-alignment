@@ -5,27 +5,33 @@ import argparse
 import numpy as np
 import time
 
-
 _THIS_DIR = os.path.dirname(os.path.abspath(__file__))
-
-sys.path.insert(0, os.path.join(_THIS_DIR, 'AprilTagMVP'))
-sys.path.insert(0, os.path.join(_THIS_DIR, 'moving_arm', 'K3N'))
-sys.path.insert(0, os.path.join(_THIS_DIR, 'computer_vision'))
+K3N_PATH = os.path.abspath(os.path.join(_THIS_DIR, '..', '..'))
+if K3N_PATH not in sys.path:
+    sys.path.insert(0, K3N_PATH)
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 
-from vision.robot.device_connection import DeviceConnection  # type: ignore
-from vision.robot.apriltag_viewer import (  # type: ignore
+from K3N.utilities import DeviceConnection
+from K3N.vision.robot.apriltag_viewer import (  # type: ignore
     get_robot_pose,
     compute_tag_coordinates,
     draw_tag_axes,
     camera_params_tag,
     TagCoordinates,
 )
-from common.utils import create_detector  # type: ignore
-from common.webcam_config import rtsp_url, tag_size  # type: ignore
-from common.tool_cam_config import R_tool_cam  # type: ignore
-from movement.auto_move import AutonomousMovement  # type: ignore
+
+COMMON_PATH = os.path.abspath(os.path.join(_THIS_DIR, 'common'))
+if COMMON_PATH not in sys.path:
+    sys.path.insert(0, COMMON_PATH)
+
+    
+from utils import create_detector  # type: ignore
+from webcam_config import rtsp_url, tag_size  # type: ignore
+from tool_cam_config import R_tool_cam  # type: ignore
+
+
+from K3N.movement.auto_move import AutonomousMovement
 
 Z_OFFSET = 0.25
 MOVE_SPEED = 0.05
@@ -129,7 +135,7 @@ def main():
 
     conn_args = ConnArgs(args.ip, args.username, args.password)
 
-    with DeviceConnection.create_tcp_connection(conn_args) as router:
+    with DeviceConnection.createTcpConnection(conn_args.ip, conn_args.username, conn_args.password) as router:
         base_client = BaseClient(router)
         movement = AutonomousMovement(base_client)
         detector = create_detector()
