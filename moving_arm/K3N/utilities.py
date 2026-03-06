@@ -104,7 +104,6 @@ def read_csv(filename, angle, position, orientation, gripper_position, translati
                 action_type = row[4].strip()  # 5th column = action ID
                 action_id.append(int(action_type))
 
-                #THESE ARE GOOD
                 if action_type == "6":  # Cartesian Pose
                     pos = [float(row[27]), float(row[28]), float(row[29])]   # X,Y,Z (cols 28-30)
                     ori = [float(row[30]), float(row[31]), float(row[32])]   # θX,θY,θZ (cols 31-33)
@@ -114,9 +113,8 @@ def read_csv(filename, angle, position, orientation, gripper_position, translati
                     orientation.append(ori)
                     translation_speed.append(spd)
 
-                #
                 elif action_type == "7":  # Angular Motion
-                    # Joint angles in columns 6-20 (0-based: 5-19, step by 2 as there identifiers are in between)
+                    # Joint angles in columns 6-20 (0-based: 5-19, step by 2 as their identifiers are in between)
                     joints = [float(row[i]) for i in range(5, 19, 2)]
                     angle.append(joints)
 

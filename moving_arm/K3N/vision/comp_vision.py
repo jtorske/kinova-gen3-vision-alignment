@@ -15,7 +15,6 @@ logger = getLogger("ComputerVisionModule")
 DEFAULT_TRANSLATION_SPEED = 0.1
 Z_OFFSET_FROM_TAG = 0.15
 
-
 class ComputerVisionModule:
 
     def __init__(self, base_client, camera_capture, movement):
@@ -161,18 +160,187 @@ class ComputerVisionModule:
 
         return ActionFrame(location, vector)
     
-    def findAprilTag(self):
+    def findAprilTag(self,
+                 yaw_step: float = 15.0,
+                 max_yaw_attempts: int = 6,
+                 x_step: float = 0.1,
+                 max_x_locations: int = 2,
+                 z_step: float = 0.1,
+                 z_levels: int = 4):
+        """
+        Search for an AprilTag by sweeping across X and Z positions
+        and performing a yaw scan at each position.
+
+        Returns:
+            (Location, Vectors) if tag found
+            None otherwise
+        """
+
+        logger.info("Starting AprilTag search routine")
+
+        pose = self.base.GetMeasuredCartesianPose()
+
+        base_location = Location(pose.x, pose.y, pose.z)
+        base_vector = Vectors(pose.theta_x, pose.theta_y, pose.theta_z)
+
+        # Create X offsets (center → left → right pattern)
+        x_offsets = [0]
+        for i in range(1, max_x_locations + 1):
+            x_offsets.append(-i * x_step)
+            x_offsets.append(i * x_step)
+
+        # Create Z levels (centered → up → down)
+        z_offsets = [0]
+        for i in range(1, z_levels + 1):
+            z_offsets.append(i * z_step)
+
+        for z_offset in z_offsets:
+
+            logger.info("Scanning at Z offset %.3f", z_offset)
+
+            for x_offset in x_offsets:
+
+                logger.info("Moving to search position X %.3f Z %.3f", x_offset, z_offset)
+
+                search_location = Location(
+                    base_location.x + x_offset,
+                    base_location.y,
+                    base_location.z + z_offset
+                )
+
+                # Move robot to this search position
+                self.movement.cartesian_action_movement(
+                    search_location,
+                    base_vector,
+                    DEFAULT_TRANSLATION_SPEED
+                )
+
+                time.sleep(1)
+
+                # Perform yaw scan
+                for i in range(max_yaw_attempts):
+
+                    result = self.detectTagAveraged()
+
+                    if result is not None:
+                        logger.info("AprilTag detected!")
+                        return result
+
+                    new_vector = Vectors(
+                        base_vector.xTheta,
+                        base_vector.yTheta,
+                        base_vector.zTheta + yaw_step * (i + 1)
+                    )
+
+                    self.movement.cartesian_action_movement(
+                        search_location,
+                        new_vector,
+                        DEFAULT_TRANSLATION_SPEED
+                    )
+
+                    time.sleep(0.5)
+
+                # Reset yaw before next search position
+                logger.info("Resetting yaw")
+
+                self.movement.cartesian_action_movement(
+                    search_location,
+                    base_vector,
+                    DEFAULT_TRANSLATION_SPEED
+                )
+
+                time.sleep(0.5)
+
+        logger.error("AprilTag not found after full search")
+        return None
+    
+    def findAprilTagLookingDown(self,
+                 yaw_step=10,
+                 yaw_attempts=6,
+                 x_step=0.05,
+                 x_locations=2,
+                 z_step=0.05,
+                 z_levels=1):
         
-        ## TODO: this is basically a placeholder for the scan routine that will be used in commander. 
-        ## It should rotate the robot until it finds the tag, then return the location and vector info. 
-        ## This is needed because the robot may not start with the tag in view, so we need a way to find it.
+        DOWN_CAMERA_JOINTS = [
+            18.19185,
+            33.89965,
+            126.84781,
+            263.79263,
+            207.30588,
+            63.46091,
+            91.60575
+        ]
 
-        logger.info("Scanning for AprilTag")
-        result = self.detectTagAveraged()
+        logger.info("Starting AprilTag search")
 
-        if result is None:
-            logger.warning("Tag not detected during scan")
-            return None
+        # Move to known camera-down pose
+        self.movement.angular_action_movement(DOWN_CAMERA_JOINTS)
+        time.sleep(2)
+
+        pose = self.base.GetMeasuredCartesianPose()
+
+        base_location = Location(pose.x, pose.y, pose.z)
+        base_vector = Vectors(pose.theta_x, pose.theta_y, pose.theta_z)
+
+        # X offsets
+        x_offsets = [0]
+        for i in range(1, x_locations + 1):
+            x_offsets.append(i * x_step)
+            x_offsets.append(-i * x_step)
+
+        # Z offsets
+        z_offsets = [0]
+        for i in range(1, z_levels + 1):
+            z_offsets.append(i * z_step)
+            z_offsets.append(-i * z_step)
+
+        for z_offset in z_offsets:
+
+            for x_offset in x_offsets:
+
+                search_location = Location(
+                    base_location.x + x_offset,
+                    base_location.y,
+                    base_location.z + z_offset
+                )
+
+                logger.info("Moving search position X %.3f Z %.3f", x_offset, z_offset)
+
+                self.movement.cartesian_action_movement(
+                    search_location,
+                    base_vector,
+                    DEFAULT_TRANSLATION_SPEED
+                )
+
+                time.sleep(1)
+
+                # Get current joint angles
+                joints = list(self.base.GetMeasuredJointAngles().joint_angles)
+
+                base_joint = joints[0]
+
+                # Sweep joint 0
+                for i in range(yaw_attempts):
+
+                    joints[0] = base_joint + yaw_step * (i + 1)
+
+                    self.movement.joint_action_movement(joints)
+
+                    time.sleep(0.6)
+
+                    result = self.detectTagAveraged()
+
+                    if result is not None:
+                        logger.info("AprilTag found")
+                        return result
+
+                # Reset joint
+                joints[0] = base_joint
+                self.movement.joint_action_movement(joints)
+
+        logger.error("AprilTag not found")
+        return None
 
         
     def saveCurrentPose(self):
