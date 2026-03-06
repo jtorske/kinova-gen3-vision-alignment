@@ -3,15 +3,12 @@ import numpy as np
 import cv2
 from logging import getLogger
 
-from common.utils import create_detector
-from robot.apriltag_viewer import get_tag_coordinates, TagCoordinates
+from .common.utils import create_detector
+from .robot.apriltag_viewer import get_tag_coordinates, TagCoordinates
 
 from ..commander.location import Location
 from ..commander.vectors import Vectors
 from ..movement.action_frame import ActionFrame
-
-# Action ID = 6
-from ..movement.auto_move import ACTION_CARTESIAN
 
 logger = getLogger("ComputerVisionModule")
 
@@ -30,6 +27,10 @@ class ComputerVisionModule:
         self.last_coords = None
 
     def detectTag(self) -> TagCoordinates:
+        """
+        Scans AprilTag and returns its coordinates relative to the robot base. 
+        This is a single scan and may be noisy.
+        """
         logger.info("Detecting tag...")
 
         ret, frame = self.cap.read()
@@ -43,6 +44,10 @@ class ComputerVisionModule:
         return coords
 
     def detectTagAveraged(self, samples: int = 5, delay: float = 0.1):
+        """
+        Do multiple scans and average the results to improve accuracy and reduce noise. 
+        Returns None if no valid detections.
+        """
 
         logger.info("Detecting tag with averaging")
 
@@ -91,7 +96,14 @@ class ComputerVisionModule:
         return location, vector
 
     def moveToTag(self, z_offset: float = Z_OFFSET_FROM_TAG):
+        """
+        Will be scrapped in favor or using auto_move based
+        on location extracted instead of doing it in a function within
+        vision module, but for now this is a simple wrapper that moves the robot to the tag location.
+        It applies a Z offset to avoid collisions with the table.
+        """
 
+        ## TODO: delete once commander and state machine is done
         logger.info("Moving to tag")
 
         result = self.detectTagAveraged()
@@ -123,21 +135,9 @@ class ComputerVisionModule:
             target_location.z
         )
 
-        position = [
-            target_location.x,
-            target_location.y,
-            target_location.z
-        ]
-
-        orientation = [
-            target_vector.xTheta,
-            target_vector.yTheta,
-            target_vector.zTheta
-        ]
-
         return self.movement.cartesian_action_movement(
-            position,
-            orientation,
+            target_location,
+            target_vector,
             DEFAULT_TRANSLATION_SPEED
         )
 
@@ -146,7 +146,7 @@ class ComputerVisionModule:
         Scan the AprilTag at the given location. Used for when the system knows
         where the AprilTag should be. Returns the information encoded in the tag.
 
-        ActionFrame: Location, Vectors
+        ActionFrame: Location, Vectors of info extracted from the april tag
         """
 
         logger.info("Scanning AprilTag at %s", location)
@@ -159,27 +159,29 @@ class ComputerVisionModule:
 
         location, vector = result
 
-        return ActionFrame(location, vector, 
-                           action=ACTION_CARTESIAN, 
-                           translation_speed=DEFAULT_TRANSLATION_SPEED)
+        return ActionFrame(location, vector)
+    
+    def findAprilTag(self):
+        
+        ## TODO: this is basically a placeholder for the scan routine that will be used in commander. 
+        ## It should rotate the robot until it finds the tag, then return the location and vector info. 
+        ## This is needed because the robot may not start with the tag in view, so we need a way to find it.
 
-    def storeLocationData(self):
-
-        logger.info("Storing location data")
-
+        logger.info("Scanning for AprilTag")
         result = self.detectTagAveraged()
 
         if result is None:
+            logger.warning("Tag not detected during scan")
             return None
 
-        location, vector = result
-
-        return ActionFrame(location, vector, action=0)
-
+        
     def saveCurrentPose(self):
         """
         Save the current pose of the robot.
         Useful for recording tool caddy position.
+
+        Returns:
+            ActionFrame: Location and Vectors of the current pose, with action=0
         """
 
         logger.info("Saving pose")
@@ -198,7 +200,7 @@ class ComputerVisionModule:
             pose.theta_z
         )
 
-        return ActionFrame(location, vector, action=0)
+        return ActionFrame(location, vector)
 
     def calibrateCamera(self):
         """

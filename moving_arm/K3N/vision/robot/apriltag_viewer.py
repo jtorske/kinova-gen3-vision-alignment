@@ -25,15 +25,15 @@ from collections import deque
 from datetime import datetime
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
-from robot.device_connection import DeviceConnection
+from K3N.utilities import DeviceConnection
 
-from common.utils import create_detector, rotation_to_euler_xyz, euler_xyz_to_R, compose_base_tag, rotation_error_deg
-from common.webcam_config import (
+from ..common.utils import create_detector, rotation_to_euler_xyz, euler_xyz_to_R, compose_base_tag, rotation_error_deg
+from ..common.webcam_config import (
     rtsp_url,
     tag_size,
     camera_params,
 )
-from common.tool_cam_config import R_tool_cam, t_tool_cam
+from ..common.tool_cam_config import R_tool_cam, t_tool_cam
 
 
 # ================================================================
@@ -617,6 +617,9 @@ def get_tag_coordinates(base_client: BaseClient, detector, frame) -> TagCoordina
             target_z = coords.base_z
             # Send to motion planner...
     """
+    if frame.dtype != np.uint8:
+        frame = frame.astype(np.uint8)
+        
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
     
     results = detector.detect(

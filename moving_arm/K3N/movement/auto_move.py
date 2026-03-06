@@ -1,7 +1,4 @@
 from logging import getLogger
-from .action_frame import ActionFrame
-from ..utilities import read_csv
-
 import threading
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
@@ -10,6 +7,8 @@ from kortex_api.autogen.messages import Base_pb2, BaseCyclic_pb2, Common_pb2
 
 from ..commander.location import Location
 from ..commander.vectors import Vectors
+from .action_frame import ActionFrame
+from ..utilities import read_csv
 
 ACTION_TIMEOUT_DURATION = 20
 ACTION_CARTESIAN = 6
