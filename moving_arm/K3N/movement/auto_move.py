@@ -1,14 +1,24 @@
+try:
+    from ..commander.location import Location
+    from ..commander.vectors import Vectors
+    from ..utilities import read_csv
+except ImportError:
+    from commander.location import Location
+    from commander.vectors import Vectors
+    from utilities import read_csv
+
 from logging import getLogger
+
+try:
+    from .action_frame import ActionFrame
+except ImportError:
+    from action_frame import ActionFrame
+
 import threading
 
 from kortex_api.autogen.client_stubs.BaseClientRpc import BaseClient
 from kortex_api.autogen.client_stubs.BaseCyclicClientRpc import BaseCyclicClient
 from kortex_api.autogen.messages import Base_pb2, BaseCyclic_pb2, Common_pb2
-
-from ..commander.location import Location
-from ..commander.vectors import Vectors
-from .action_frame import ActionFrame
-from ..utilities import read_csv
 
 ACTION_TIMEOUT_DURATION = 20
 ACTION_CARTESIAN = 6
@@ -163,19 +173,33 @@ class AutonomousMovement:
         return "OK"
     
     # Create closure to set an event after an END or an ABORT
-    def check_for_end_or_abort(self, e):
+    @staticmethod
+    def check_for_end_or_abort(e, result_holder=None):
         """Return a closure checking for END or ABORT notifications
 
         Arguments:
         e -- event to signal when the action is completed
             (will be set when an END or ABORT occurs)
+        result_holder -- optional list where [0] = success (True/False)
         """
         def check(notification, e = e):
-            print("EVENT : " + \
-                Base_pb2.ActionEvent.Name(notification.action_event))
-            if notification.action_event == Base_pb2.ACTION_END \
-            or notification.action_event == Base_pb2.ACTION_ABORT:
+            event_name = Base_pb2.ActionEvent.Name(notification.action_event)
+            print(f"EVENT : {event_name}")
+            
+            if notification.action_event == Base_pb2.ACTION_END:
+                print("[OK] Action completed successfully (ACTION_END)")
+                if result_holder is not None:
+                    result_holder[0] = True
                 e.set()
+            elif notification.action_event == Base_pb2.ACTION_ABORT:
+                print(f"[ABORT] Action aborted!")
+                print(f"  - Abort info: {notification}")
+                if result_holder is not None:
+                    result_holder[0] = False
+                e.set()
+            else:
+                # Log other events for debugging
+                print(f"  (intermediate event: {event_name})")
         return check
 
     def angular_action_movement(self, angles):
@@ -211,19 +235,69 @@ class AutonomousMovement:
             print("Timeout on action notification wait")
         return finished
     
-    def cartesian_action_movement(self, position, orientation, velocity):
+    def cartesian_action_movement(self, position, orientation, velocity, blocking=True):
+        """
+        Execute a Cartesian movement.
+        
+        Args:
+            position: [x, y, z] in meters
+            orientation: [theta_x, theta_y, theta_z] in degrees
+            velocity: translation speed in m/s
+            blocking: if True, wait for movement to complete. If False, return immediately.
+        """
+        # Only print verbose debug info for blocking calls
+        if blocking:
+            print("\n" + "="*60)
+            print("CARTESIAN MOVEMENT DEBUG INFO")
+            print("="*60)
+        
+        # Check and clear any existing faults
+        if blocking:
+            print("[DEBUG] Checking for faults...")
+        try:
+            self.base.ClearFaults()
+            if blocking:
+                print("[DEBUG] Faults cleared")
+        except Exception as e:
+            if blocking:
+                print(f"[DEBUG] ClearFaults exception: {e}")
+        
+        # Set servoing mode
+        if blocking:
+            print("[DEBUG] Setting servoing mode to SINGLE_LEVEL_SERVOING...")
+        try:
+            base_servo_mode = Base_pb2.ServoingModeInformation()
+            base_servo_mode.servoing_mode = Base_pb2.SINGLE_LEVEL_SERVOING
+            self.base.SetServoingMode(base_servo_mode)
+            if blocking:
+                print("[DEBUG] Servoing mode set successfully")
+        except Exception as e:
+            if blocking:
+                print(f"[DEBUG] SetServoingMode exception: {e}")
+        
+        # Get current pose for comparison (only for blocking/debug)
+        if blocking:
+            print("[DEBUG] Getting current pose...")
+            try:
+                current_pose = self.base.GetMeasuredCartesianPose()
+                print(f"[DEBUG] Current pose: x={current_pose.x:.3f}, y={current_pose.y:.3f}, z={current_pose.z:.3f}")
+                print(f"[DEBUG] Current orientation: θx={current_pose.theta_x:.1f}, θy={current_pose.theta_y:.1f}, θz={current_pose.theta_z:.1f}")
+            except Exception as e:
+                print(f"[DEBUG] GetMeasuredCartesianPose exception: {e}")
+            
+            # Log target
+            print(f"[DEBUG] Target position: x={position[0]:.3f}, y={position[1]:.3f}, z={position[2]:.3f}")
+            print(f"[DEBUG] Target orientation: θx={orientation[0]:.1f}, θy={orientation[1]:.1f}, θz={orientation[2]:.1f}")
+            print(f"[DEBUG] Velocity: {velocity} m/s")
     
         action = Base_pb2.Action()
         action.name = "Example Cartesian action movement"
         action.application_data = ""
 
-        #feedback = base_cyclic.RefreshFeedback()
-
         cartesian_pose = action.reach_pose.target_pose
-        #speed
-        speed=action.reach_pose.constraint.speed
-        speed.translation=velocity
-        #
+        speed = action.reach_pose.constraint.speed
+        speed.translation = velocity
+        
         cartesian_pose.x = position[0]         # (meters)
         cartesian_pose.y = position[1]    # (meters)
         cartesian_pose.z = position[2]    # (meters)
@@ -231,23 +305,50 @@ class AutonomousMovement:
         cartesian_pose.theta_y = orientation[1] # (degrees)
         cartesian_pose.theta_z = orientation[2] # (degrees)
 
+        # Non-blocking mode - just send command and return
+        if not blocking:
+            try:
+                self.base.ExecuteAction(action)
+                return True
+            except Exception as e:
+                print(f"[ERROR] ExecuteAction exception: {e}")
+                return False
+
         e = threading.Event()
+        result_holder = [None]  # Track END vs ABORT
         notification_handle = self.base.OnNotificationActionTopic(
-            self.check_for_end_or_abort(e),
+            self.check_for_end_or_abort(e, result_holder),
             Base_pb2.NotificationOptions()
         )
 
-        print("Executing action")
-        self.base.ExecuteAction(action)
+        print("[DEBUG] Executing action...")
+        try:
+            self.base.ExecuteAction(action)
+        except Exception as e:
+            print(f"[DEBUG] ExecuteAction exception: {e}")
+            self.base.Unsubscribe(notification_handle)
+            return False
 
-        print("Waiting for movement to finish ...")
+        print("[DEBUG] Waiting for movement to finish...")
         finished = e.wait(ACTION_TIMEOUT_DURATION)
         self.base.Unsubscribe(notification_handle)
-        if finished:
-            print("Cartesian movement completed")
+        
+        if not finished:
+            print("[FAIL] Timeout on action notification wait")
+            return False
+        
+        if result_holder[0]:
+            print("[OK] Cartesian movement completed successfully")
+            return True
         else:
-            print("Timeout on action notification wait")
-        return finished
+            print("[FAIL] Cartesian movement ABORTED")
+            # Try to get more info about why
+            try:
+                final_pose = self.base.GetMeasuredCartesianPose()
+                print(f"[DEBUG] Final pose: x={final_pose.x:.3f}, y={final_pose.y:.3f}, z={final_pose.z:.3f}")
+            except:
+                pass
+            return False
 
     def move_to_home_position(self):
         # Make sure the arm is in Single Level Servoing mode
