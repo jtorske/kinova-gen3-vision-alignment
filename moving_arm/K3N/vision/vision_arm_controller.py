@@ -69,6 +69,22 @@ PHASE_NAMES = {
     PHASE_COMPLETE: "COMPLETE"
 }
 
+def parse_args():
+    parser = argparse.ArgumentParser(description="Vision-guided arm controller")
+    parser.add_argument("--ip", type=str, required=True, help="Robot IP address")
+    parser.add_argument("-u", "--username", type=str, required=True, help="Robot username")
+    parser.add_argument("-p", "--password", type=str, required=True, help="Robot password")
+    return parser.parse_args()
+
+
+def make_conn_args(args):
+    class ConnArgs:
+        def __init__(self, ip, username, password):
+            self.ip = ip
+            self.username = username
+            self.password = password
+
+    return ConnArgs(args.ip, args.username, args.password)
 
 def compute_alignment_error(current_pose, coords):
     target_yaw = coords.base_yaw
@@ -124,42 +140,20 @@ def compute_alignment_error(current_pose, coords):
 
     return err_roll, err_pitch, err_yaw, target_roll, target_pitch, target_yaw
 
-
-def parse_args():
-    parser = argparse.ArgumentParser(description="Vision-guided arm controller")
-    parser.add_argument("--ip", type=str, required=True, help="Robot IP address")
-    parser.add_argument("-u", "--username", type=str, required=True, help="Robot username")
-    parser.add_argument("-p", "--password", type=str, required=True, help="Robot password")
-    return parser.parse_args()
-
-
-def make_conn_args(args):
-    class ConnArgs:
-        def __init__(self, ip, username, password):
-            self.ip = ip
-            self.username = username
-            self.password = password
-
-    return ConnArgs(args.ip, args.username, args.password)
-
-
 def create_components(base_client):
     movement = AutonomousMovement(base_client)
     detector = create_detector()
     return movement, detector
-
 
 def open_camera(ip):
     cap = cv2.VideoCapture(rtsp_url(ip))
     cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)
     return cap
 
-
 def print_startup():
     print("[OK] Connected to robot")
     print("\n" + "=" * 50)
     print("VISION ARM CONTROLLER (Relative Movement)")
-
 
 def initialize_state():
     return {
@@ -178,13 +172,11 @@ def initialize_state():
         "tag_near_edge": False,
     }
 
-
 def grab_latest_frame(cap):
     for _ in range(3):
         cap.grab()
     ret, frame = cap.read()
     return ret, frame
-
 
 def detect_tag(detector, frame):
     gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
@@ -194,7 +186,6 @@ def detect_tag(detector, frame):
         camera_params=camera_params_tag,
         tag_size=tag_size,
     )
-
 
 def process_detections(frame, results, base_client, state):
     R_base_tool, t_base_tool = get_robot_pose(base_client)
@@ -219,7 +210,6 @@ def process_detections(frame, results, base_client, state):
         break
 
     return coords, R_base_tool, t_base_tool
-
 
 def update_edge_status(frame, coords, results, state):
     h, w = frame.shape[:2]
@@ -259,7 +249,6 @@ def update_edge_status(frame, coords, results, state):
     cv2.line(frame, (cx - 20, cy), (cx + 20, cy), (255, 255, 255), 1)
     cv2.line(frame, (cx, cy - 20), (cx, cy + 20), (255, 255, 255), 1)
 
-
 def wrap_error(a, b):
     diff = a - b
     while diff > 180:
@@ -270,12 +259,10 @@ def wrap_error(a, b):
         return 0
     return diff
 
-
 def get_error_color(err):
     if abs(err) < ALIGN_THRESHOLD_DEG:
         return (0, 255, 0)
     return (255, 100, 255)
-
 
 def draw_overlay(frame, coords, t_base_tool, base_client, state):
     cv2.rectangle(frame, (5, 5), (520, 310), (0, 0, 0), -1)
