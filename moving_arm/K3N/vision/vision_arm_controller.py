@@ -20,6 +20,8 @@ from K3N.vision.robot.apriltag_viewer import (  # type: ignore
     camera_params_tag,
     TagCoordinates,
 )
+from K3N.movement.auto_move import AutonomousMovement
+from K3N.vision.comp_vision import ComputerVisionModule as Vision
 
 COMMON_PATH = os.path.abspath(os.path.join(_THIS_DIR, 'common'))
 if COMMON_PATH not in sys.path:
@@ -28,8 +30,6 @@ if COMMON_PATH not in sys.path:
 from utils import create_detector  # type: ignore
 from webcam_config import rtsp_url, tag_size  # type: ignore
 from tool_cam_config import R_tool_cam  # type: ignore
-
-from K3N.movement.auto_move import AutonomousMovement
 
 Z_OFFSET = 0.25
 MOVE_SPEED = 0.05
@@ -829,13 +829,47 @@ def handle_tracking_logic(base_client, movement, coords, state):
 
     if state["tracking_phase"] == PHASE_FINAL_MOVE:
         handle_final_move_phase(movement, state, R_base_tool, t_base_tool, current_pose)
-
+    
+    # Once we reach PHASE_COMPLETE, return True to indicate we're done
+    if state["tracking_phase"] == PHASE_COMPLETE:
+        return True
+    return False
 
 def cleanup(cap):
     cap.release()
     cv2.destroyAllWindows()
     print("[OK] Done")
 
+def useVision(vision):
+    state = initialize_state()
+    max_iterations = 200
+    iteration = 0
+
+    while iteration < max_iterations:
+        iteration += 1
+
+        ret, frame = grab_latest_frame(vision.cap)
+        if not ret:
+            continue
+
+        results = detect_tag(vision.detector, frame)
+
+        coords, R_base_tool, t_base_tool = process_detections(
+            frame, results, vision.base, state
+        )
+
+        update_edge_status(frame, coords, results, state)
+
+        draw_overlay(frame, coords, t_base_tool, vision.base, state)
+
+        key = show_frame_and_get_key(frame)
+        if key == ord("q"):
+            break
+
+        handle_tag_loss(vision.base, vision.movement, coords, state)
+        result = handle_tracking_logic(vision.base, vision.movement, coords, state)
+
+    return result
 
 def main():
     args = parse_args()
@@ -852,24 +886,10 @@ def main():
             print("[ERROR] Could not open camera")
             return
 
-        state = initialize_state()
+        result = useVision(Vision(base_client, movement, cap))
 
-        while True:
-            ret, frame = grab_latest_frame(cap)
-            if not ret:
-                continue
-
-            results = detect_tag(detector, frame)
-            coords, R_base_tool, t_base_tool = process_detections(frame, results, base_client, state)
-            update_edge_status(frame, coords, results, state)
-            draw_overlay(frame, coords, t_base_tool, base_client, state)
-
-            key = show_frame_and_get_key(frame)
-            if key == ord('q'):
-                break
-
-            handle_tag_loss(base_client, movement, coords, state)
-            handle_tracking_logic(base_client, movement, coords, state)
+        if result is True:
+            print("[OK] Sequence completed successfully!")
 
         cleanup(cap)
 

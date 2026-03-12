@@ -1,4 +1,6 @@
 
+import select
+from socket import socket
 import sys
 import os
 import time
@@ -10,6 +12,8 @@ from kortex_api.autogen.client_stubs.InterconnectConfigClientRpc import Intercon
 from kortex_api.autogen.messages import Session_pb2, Base_pb2, Common_pb2, InterconnectConfig_pb2, DeviceManager_pb2
 
 from K3N import utilities
+
+UART_PORT_EXPANSION = 1
 
 def createNewBridge(type, interface_name, device_ip):
     if type == "ETHERNET":
@@ -134,3 +138,47 @@ class UARTBridgeConfig:
 
         def DisableBridge(self, bridge_id):
             return self.base.DisableBridge(bridge_id)
+        
+class UARTBridge:
+
+    def __init__(self, router, ip):
+
+        uart = UARTBridgeConfig(router, ip)
+
+        uart.Configure(
+            UART_PORT_EXPANSION,
+            enabled=True,
+            speed=Common_pb2.UART_SPEED_115200,
+            word_length=Common_pb2.UART_WORD_LENGTH_8,
+            stop_bits=Common_pb2.UART_STOP_BITS_1,
+            parity=Common_pb2.UART_PARITY_NONE,
+        )
+
+        time.sleep(1)
+
+        bridge_result = uart.EnableBridge(Base_pb2.BRIDGE_TYPE_UART)
+
+        bridge_id = bridge_result.bridge_id
+        bridge_config = uart.base.GetBridgeConfig(bridge_id)
+
+        base_port = bridge_config.port_config.out_port
+
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.connect((ip, base_port))
+        self.socket.setblocking(False)
+
+    def send(self, msg: str):
+
+        data = (msg + "\n").encode()
+        self.socket.send(data)
+
+    def read(self):
+
+        ready, _, _ = select.select([self.socket], [], [], 0)
+
+        if ready:
+            data = self.socket.recv(1024)
+            if data:
+                return data.decode("utf-8", errors="ignore")
+
+        return None

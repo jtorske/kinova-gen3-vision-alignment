@@ -101,7 +101,7 @@ class AutonomousMovement:
             
         logger.info("Sequence completed successfully")
         return results
-    
+
     def moveArm(self, frame: ActionFrame) -> str:
         logger.info("Moving arm using ActionFrame")
         # Will use functions defined below to perform the movement
@@ -112,8 +112,6 @@ class AutonomousMovement:
         if action_type == ACTION_ANGULAR:
             logger.info("Executing angular movement")
 
-            # Expecting frame.location to carry joint angles as x, y, z, ...
-            # If you later expand joints, this is the only line that changes
             joint_angles = [
                 frame.location.x,
                 frame.location.y,
