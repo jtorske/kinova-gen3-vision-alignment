@@ -94,6 +94,7 @@ class ToolLatchController:
         print("STATE: DISENGAGE")
 
         # move robot to drop pose
+        # On moving up by a set offset in z, the tool should be clear of the rack
         print("Moving robot to drop position")
 
         time.sleep(2)
@@ -210,6 +211,18 @@ def main():
 
     controller = ToolLatchController(uart, movement)
 
+    controller.run()
+
+    # Run Demo
+    # Poll for interrupt from firmware (use UART.recv)
+    # Go to scoop stuff - know where to go, known location (hardcode)
+    # Put scooped stuff in spot - hardcoded location for deposit
+    # Return scoop to tool caddy
+    # Enter disengage state
+    
+    # Back into controller
+
+    controller.setState(States.DISENGAGE)
     controller.run()
 
 
