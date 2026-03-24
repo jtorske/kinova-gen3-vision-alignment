@@ -36,17 +36,17 @@ The pipeline processes visual data through several layers to translate pixels in
 
 ## 3. Key Components
 
-### 👁️ Vision Module
+### Vision Module
 * Processes raw frames and filters noise.
 * Handles 3D pose estimation and generates coordinate data.
 * Provides visual debugging overlays, including coordinate axes, distance markers, and ID labels.
 
-### 🦾 Robot Interface
+### Robot Interface
 * Leverages the **Kinova Kortex API** for high-level control.
 * Synchronizes real-time feedback of the robot's current Cartesian pose.
 * Manages safety-rated motion commands to prevent collisions.
 
-### ⚙️ Movement Controller
+### Movement Controller
 * Implements incremental alignment logic for high-precision docking.
 * Enforces movement thresholds to prevent jitter and ensures the robot respects physical workspace limits.
 
