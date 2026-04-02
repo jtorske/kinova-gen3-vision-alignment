@@ -1,11 +1,11 @@
-# 🚀 Autonomous Robotic Tool Change System
+#  Autonomous Robotic Tool Change System
 
-🎥 **Demo:**  
-[![Autonomous Robotic Tool Change System](https://img.youtube.com/vi/CuOg0Ul9JbY/0.jpg)](https://www.youtube.com/watch?v=HYguS0uoPv4)
+## Demo
 
+[![Autonomous Robotic Tool Change System](https://img.youtube.com/vi/HYguS0uoPv4/maxresdefault.jpg)](https://www.youtube.com/watch?v=HYguS0uoPv4)
 ---
 
-## 📌 Overview
+## Overview
 
 This project presents a fully autonomous robotic tool change system developed as part of a **Multi-Disciplinary Engineering Capstone (2026)**.
 
@@ -13,7 +13,7 @@ The system enables a robotic arm to **identify, align with, attach, and utilize 
 
 ---
 
-## ⚙️ Software System
+## Software System
 
 ### Deliverables
 - Vision-based detection and localization using **AprilTags**
@@ -26,7 +26,7 @@ The system enables a robotic arm to **identify, align with, attach, and utilize 
 
 ---
 
-## 👁️ Computer Vision Pipeline
+## Computer Vision Pipeline
 
 The computer vision subsystem enables real-time pose estimation:
 
@@ -37,11 +37,11 @@ The computer vision subsystem enables real-time pose estimation:
 5. Transform pose into usable quantities (yaw, pitch, roll)  
 6. Output smoothed, real-time pose data for motion control  
 
-👉 Final output: **3D pose of detected tag in camera frame**
+Final output: **3D pose of detected tag in camera frame**
 
 ---
 
-## 🤖 Arm Control & Feedback
+## Arm Control & Feedback
 
 The control system executes autonomous robotic actions:
 
@@ -59,7 +59,7 @@ The control system executes autonomous robotic actions:
 
 ---
 
-## 🧠 System Pipeline
+## System Pipeline
 
 The system performs a complete perception-to-action sequence:
 
@@ -73,7 +73,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## 🛠️ Tech Stack
+## Tech Stack
 
 - **Programming:** Python  
 - **Computer Vision:** OpenCV, AprilTags  
@@ -83,7 +83,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## 🔌 Electrical System
+## Electrical System
 
 - Embedded communication between sensors and control system  
 - Hall-effect sensors for attachment verification  
@@ -92,7 +92,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## ⚙️ Mechanical System
+## Mechanical System
 
 - Custom-designed end effector and tool caddy  
 - Magnetic latching mechanism for reliable attachment  
@@ -103,7 +103,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## 📊 Results & Performance
+## Results & Performance
 
 ### Achieved Capabilities
 - Fully autonomous tool localization, pickup, and drop-off  
@@ -117,7 +117,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## 🎯 Applications
+## Applications
 
 - Space robotics (e.g., lunar regolith sampling)  
 - Autonomous manufacturing systems  
@@ -125,7 +125,7 @@ The system performs a complete perception-to-action sequence:
 
 ---
 
-## 👥 Contributors
+## Contributors
 
 ### Software
 - Jordan Torske  
