@@ -1,79 +1,148 @@
-# Kinova Gen3 Vision-Guided Robotics System
+# 🚀 Autonomous Robotic Tool Change System
 
-An autonomous, vision-guided robotic manipulation system designed for the **Kinova Gen3** robotic arm. This project integrates real-time **AprilTag detection**, **3D coordinate transformations**, and **closed-loop control** to enable precise robot-to-target alignment.
-
-**Sponsored by:** **MDA Space** Developed as a **Software Engineering Capstone Project**.
-
----
-
-## 1. Overview
-
-The system provides a full-stack solution for autonomous visual docking. By utilizing a wrist-mounted camera, the robot identifies environmental markers and adjusts its end-effector pose in real-time to match target orientations.
-
-### Core Capabilities
-* **Real-time Detection:** Identifies AprilTags using the robot's onboard tool camera.
-* **Pose Estimation:** Calculates the 6D pose (position and orientation) of the tag relative to the camera.
-* **Spatial Mapping:** Transforms camera-space coordinates into the robot's global base frame.
-* **Autonomous Alignment:** Generates and executes Cartesian commands to align the tool with the target.
+🎥 **Demo:**  
+[![Autonomous Robotic Tool Change System](https://img.youtube.com/vi/CuOg0Ul9JbY/0.jpg)](https://www.youtube.com/watch?v=CuOg0Ul9JbY)
 
 ---
 
-## 2. System Architecture
+## 📌 Overview
 
-The pipeline processes visual data through several layers to translate pixels into physical motion.
+This project presents a fully autonomous robotic tool change system developed as part of a **Multi-Disciplinary Engineering Capstone (2026)**.
 
-
-
-### Data Pipeline
-1.  **Image Capture:** The wrist camera streams frames of the workspace.
-2.  **Detection:** The `pupil-apriltags` detector identifies tag IDs and pixel corner coordinates.
-3.  **Calibration & PnP:** Using camera intrinsics ($f_x, f_y, c_x, c_y$), the system solves the **Perspective-n-Point (PnP)** problem to find the transformation $T_{cam}^{tag}$.
-4.  **Coordinate Transformation:** The system resolves the kinematic chain to find the tag's position relative to the robot base:
-    $$T_{base}^{tag} = T_{base}^{tool} \cdot T_{tool}^{cam} \cdot T_{cam}^{tag}$$
-5.  **Control Loop:** The **Movement Controller** calculates the error between the current tool pose and the target tag pose, sending incremental updates via the Kinova Kortex API.
+The system enables a robotic arm to **identify, align with, attach, and utilize tools without human intervention** by integrating computer vision, control systems, and hardware design into a unified pipeline.
 
 ---
 
-## 3. Key Components
+## ⚙️ Software System
 
-### Vision Module
-* Processes raw frames and filters noise.
-* Handles 3D pose estimation and generates coordinate data.
-* Provides visual debugging overlays, including coordinate axes, distance markers, and ID labels.
-
-### Robot Interface
-* Leverages the **Kinova Kortex API** for high-level control.
-* Synchronizes real-time feedback of the robot's current Cartesian pose.
-* Manages safety-rated motion commands to prevent collisions.
-
-### Movement Controller
-* Implements incremental alignment logic for high-precision docking.
-* Enforces movement thresholds to prevent jitter and ensures the robot respects physical workspace limits.
+### Deliverables
+- Vision-based detection and localization using **AprilTags**
+- Autonomous workflows for:
+  - Tool identification  
+  - Tool pickup and placement  
+  - Sample collection and deposition  
+- Fail-safe state handling for power loss or actuator faults  
+- Modular and portable control interface compatible with the **Kinova Gen3 robotic arm**
 
 ---
 
-## 4. Technical Stack
+## 👁️ Computer Vision Pipeline
 
-| Category | Technologies |
-| :--- | :--- |
-| **Sponsor** | **MDA Space** |
-| **Languages** | Python |
-| **Computer Vision** | OpenCV, NumPy, `pupil-apriltags` |
-| **Robotics API** | Kinova Kortex API |
-| **Math & Logic** | Spatial Transformations, PnP Solver |
+The computer vision subsystem enables real-time pose estimation:
+
+1. Capture image frames from the onboard camera  
+2. Detect AprilTags and extract corner features  
+3. Compute full **6-DOF pose** using calibrated camera parameters  
+4. Convert pose into translation and rotation values  
+5. Transform pose into usable quantities (yaw, pitch, roll)  
+6. Output smoothed, real-time pose data for motion control  
+
+👉 Final output: **3D pose of detected tag in camera frame**
 
 ---
 
-## 5. Project Structure
+## 🤖 Arm Control & Feedback
 
-```text
-K3N/
-├── vision/
-│   ├── comp_vision.py          # Core detection logic
-│   └── robot/
-│       └── apriltag_viewer.py  # Debugging & visualization
-├── movement/
-│   └── auto_move.py            # Alignment & control loops
-├── utilities/
-│   └── DeviceConnection.py     # Kortex API connection handling
-└── scripts/                    # Entry points and main control scripts
+The control system executes autonomous robotic actions:
+
+- Built using the **Kinova Kortex API**  
+- Layered architecture for command execution and feedback handling  
+- Centralized command system for:
+  - Motion planning  
+  - Execution  
+  - State tracking  
+
+### Key Features
+- Real-time feedback via system flags and sensors  
+- Continuous logging for diagnostics and error handling  
+- Fail-safe mechanisms for safe operation  
+
+---
+
+## 🧠 System Pipeline
+
+The system performs a complete perception-to-action sequence:
+
+1. Locate tool using vision (AprilTags)  
+2. Estimate pose and align the end effector  
+3. Apply predefined transformation to tool position  
+4. Secure tool via electromagnetic end effector  
+5. Verify attachment using Hall-effect sensor feedback  
+6. Execute task (e.g., regolith sample collection)  
+7. Return and deposit tool and sample  
+
+---
+
+## 🛠️ Tech Stack
+
+- **Programming:** Python  
+- **Computer Vision:** OpenCV, AprilTags  
+- **Robotics:** Kinova Gen3 (Kortex API)  
+- **Control Systems:** Closed-loop feedback control  
+- **Architecture:** Modular, layered control system  
+
+---
+
+## 🔌 Electrical System
+
+- Embedded communication between sensors and control system  
+- Hall-effect sensors for attachment verification  
+- Electromagnetic latching mechanism  
+- Custom interface board for robot integration  
+
+---
+
+## ⚙️ Mechanical System
+
+- Custom-designed end effector and tool caddy  
+- Magnetic latching mechanism for reliable attachment  
+- Designed for durability under:
+  - Thermal stress  
+  - Repeated attachment cycles  
+  - Misalignment tolerance  
+
+---
+
+## 📊 Results & Performance
+
+### Achieved Capabilities
+- Fully autonomous tool localization, pickup, and drop-off  
+- Reliable magnetic latching mechanism  
+- Integrated multi-system coordination  
+
+### Performance Highlights
+- Autonomous control using computer vision  
+- Real-time system feedback and control  
+- Robust tool attachment and handling  
+
+---
+
+## 🎯 Applications
+
+- Space robotics (e.g., lunar regolith sampling)  
+- Autonomous manufacturing systems  
+- Hazardous or remote robotic operations  
+
+---
+
+## 👥 Contributors
+
+### Software
+- Jordan Torske  
+- Ryan Pryor  
+- Jaiden Reese Sanchez  
+- Bruce Gillis  
+
+### Electrical
+- Jaden Savoia  
+
+### Mechanical
+- Cody Barth  
+
+---
+
+## 🏁 Summary
+
+This project demonstrates a complete autonomous robotic system that integrates **perception, control, and hardware** into a seamless workflow. It highlights the effectiveness of combining computer vision and real-time control for precise and reliable robotic manipulation.
+
+---
